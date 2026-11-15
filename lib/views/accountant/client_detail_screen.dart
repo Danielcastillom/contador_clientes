@@ -1000,7 +1000,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                   onPressed: () => _createSubFolderDialog(currentPath),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.add_circle, color: Colors.green, size: 22),
+                  icon: const Icon(Icons.add_circle, color: Colors.indigo, size: 22),
                   tooltip: 'Agregar archivo a "$folderName"',
                   onPressed: () => _uploadDocumentToPath(currentPath),
                 ),

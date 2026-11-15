@@ -137,7 +137,7 @@ class _SubirDocumentoClienteViewState extends State<SubirDocumentoClienteView> {
                         leading: const Icon(Icons.insert_drive_file, color: Colors.blue),
                         title: Text(nombre),
                         trailing: IconButton(
-                          icon: const Icon(Icons.download, color: Colors.green),
+                          icon: const Icon(Icons.download, color: Colors.indigo),
                           tooltip: 'Descargar / Ver',
                           onPressed: () => _descargarArchivo(base64Str, nombre),
                         ),

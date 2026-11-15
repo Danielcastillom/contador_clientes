@@ -183,7 +183,7 @@ class _ClientDetailViewState extends State<ClientDetailView> {
                           Chip(
                             label: Text(status),
                             backgroundColor: status.toLowerCase().contains('pagado') || status.toLowerCase().contains('paid')
-                                ? Colors.green.shade100
+                                ? Colors.blue.shade100
                                 : Colors.orange.shade100,
                           ),
                         ],
