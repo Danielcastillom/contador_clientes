@@ -26,6 +26,7 @@ class MyApp extends StatelessWidget {
           seedColor: const Color(0xFF1B5E20), // Verde financiero profesional (Green 900)
           brightness: Brightness.light,
         ),
+        scaffoldBackgroundColor: const Color(0xFFEBF3FA), // Azul claro profesional de alto contraste
         useMaterial3: true,
       ),
       home: LoginView(),
