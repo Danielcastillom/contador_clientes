@@ -1,0 +1,50 @@
+name: Compilar Windows Executable (.exe)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch: # Permite ejecutar la compilación manualmente desde la pestaña Actions en GitHub
+
+jobs:
+  build-windows:
+    name: Compilar versión para Windows (.exe)
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 💙 Configurar Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: 🛠️ Habilitar soporte para Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: 📦 Obtener dependencias del proyecto
+        run: flutter pub get
+
+      - name: 🏗️ Compilar ejecutable para Windows en modo Release
+        run: flutter build windows --release
+
+      - name: 🤐 Comprimir ejecutable y archivos DLL de soporte
+        shell: powershell
+        run: |
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "contador_clientes_windows.zip"
+
+      - name: 📤 Subir Ejecutable (.exe) como Artefacto Descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: contador_clientes_windows_exe
+          path: contador_clientes_windows.zip
+          retention-days: 30

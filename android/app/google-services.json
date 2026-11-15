@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "976093949613",
+    "project_id": "contadorclientes-2da51",
+    "storage_bucket": "contadorclientes-2da51.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:976093949613:android:277a4795adabc3ca0da024",
+        "android_client_info": {
+          "package_name": "com.jdcastillo.contador_nuevo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANuvGmzxcA-JIZpjk9-KDV0vm9ZHPr--4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

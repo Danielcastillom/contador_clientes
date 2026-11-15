@@ -1,0 +1,37 @@
+name: contador_clientes
+description: "Aplicación de contabilidad para contadores y clientes."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase Core y Servicios
+  firebase_core: ^3.15.2
+  firebase_auth: ^5.7.0
+  cloud_firestore: ^5.6.12
+  firebase_storage: ^12.4.10
+
+  # Utilidades para archivos y enlaces
+  file_picker: ^8.0.0
+  url_launcher: ^6.3.1
+
+  intl: ^0.19.0
+
+  # Iconos y diseño
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/masexacto.png
