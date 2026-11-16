@@ -37,10 +37,11 @@ jobs:
       - name: 🏗️ Compilar ejecutable para Windows en modo Release
         run: flutter build windows --release
 
-      - name: 🤐 Comprimir ejecutable y archivos DLL de soporte
+      - name: 🤐 Comprimir ejecutable, carpeta data y archivos DLL de soporte
         shell: powershell
         run: |
-          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "contador_clientes_windows.zip"
+          Set-Location -Path "build\windows\x64\runner"
+          Compress-Archive -Path "Release\*" -DestinationPath "..\..\..\..\contador_clientes_windows.zip"
 
       - name: 📤 Subir Ejecutable (.exe) como Artefacto Descargable
         uses: actions/upload-artifact@v4
