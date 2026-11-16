@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../utils/download_helper.dart';
+import '../../utils/image_helper.dart';
 import '../../models/client_model.dart';
 import 'edit_client_screen.dart';
 
@@ -1196,39 +1197,48 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                                       child: InkWell(
                                         onTap: _pickAndUpdateClientLogo,
                                         borderRadius: BorderRadius.circular(10),
-                                        child: Stack(
-                                          children: [
-                                            Container(
-                                              width: isMobile ? 60 : 80,
-                                              height: isMobile ? 60 : 80,
-                                              decoration: BoxDecoration(
-                                                color: Colors.indigo.shade50,
-                                                borderRadius: BorderRadius.circular(10),
-                                                border: Border.all(color: Colors.indigo.shade200, width: 1.5),
-                                                image: logoBase64 != null
-                                                    ? DecorationImage(
-                                                        image: MemoryImage(convert.base64Decode(logoBase64)),
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                    : null,
-                                              ),
-                                              child: logoBase64 == null
-                                                  ? Icon(Icons.business, size: isMobile ? 30 : 40, color: Colors.indigo)
-                                                  : null,
-                                            ),
-                                            Positioned(
-                                              bottom: 2,
-                                              right: 2,
-                                              child: Container(
-                                                padding: const EdgeInsets.all(3),
-                                                decoration: const BoxDecoration(
-                                                  color: Colors.indigo,
-                                                  shape: BoxShape.circle,
+                                        child: Builder(
+                                          builder: (context) {
+                                            final logoBytes = safeBase64Decode(logoBase64);
+                                            return Stack(
+                                              children: [
+                                                Container(
+                                                  width: isMobile ? 60 : 80,
+                                                  height: isMobile ? 60 : 80,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.indigo.shade50,
+                                                    borderRadius: BorderRadius.circular(10),
+                                                    border: Border.all(color: Colors.indigo.shade200, width: 1.5),
+                                                  ),
+                                                  child: logoBytes != null
+                                                      ? ClipRRect(
+                                                          borderRadius: BorderRadius.circular(10),
+                                                          child: Image.memory(
+                                                            logoBytes,
+                                                            fit: BoxFit.cover,
+                                                            width: double.infinity,
+                                                            height: double.infinity,
+                                                            errorBuilder: (context, error, stackTrace) =>
+                                                                Icon(Icons.business, size: isMobile ? 30 : 40, color: Colors.indigo),
+                                                          ),
+                                                        )
+                                                      : Icon(Icons.business, size: isMobile ? 30 : 40, color: Colors.indigo),
                                                 ),
-                                                child: const Icon(Icons.edit, size: 12, color: Colors.white),
-                                              ),
-                                            ),
-                                          ],
+                                                Positioned(
+                                                  bottom: 2,
+                                                  right: 2,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.all(3),
+                                                    decoration: const BoxDecoration(
+                                                      color: Colors.indigo,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: const Icon(Icons.edit, size: 12, color: Colors.white),
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          },
                                         ),
                                       ),
                                     ),

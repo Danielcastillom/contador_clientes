@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/client_model.dart';
+import '../../utils/image_helper.dart';
 import 'client_detail_screen.dart';
 import 'add_client_dialog.dart';
 import 'edit_client_screen.dart';
@@ -228,28 +229,35 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
                               children: [
-                                Container(
-                                  width: 55,
-                                  height: 55,
-                                  decoration: BoxDecoration(
-                                    color: Colors.indigo.shade50,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.indigo.shade200),
-                                  ),
-                                  child: logoBase64 != null
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(4.0),
-                                            child: Image.memory(
-                                              convert.base64Decode(logoBase64),
-                                              fit: BoxFit.contain,
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                            ),
-                                          ),
-                                        )
-                                      : const Icon(Icons.business, color: Colors.indigo, size: 28),
+                                Builder(
+                                  builder: (context) {
+                                    final logoBytes = safeBase64Decode(logoBase64);
+                                    return Container(
+                                      width: 55,
+                                      height: 55,
+                                      decoration: BoxDecoration(
+                                        color: Colors.indigo.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.indigo.shade200),
+                                      ),
+                                      child: logoBytes != null
+                                          ? ClipRRect(
+                                              borderRadius: BorderRadius.circular(8),
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(4.0),
+                                                child: Image.memory(
+                                                  logoBytes,
+                                                  fit: BoxFit.contain,
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                  errorBuilder: (context, error, stackTrace) =>
+                                                      const Icon(Icons.business, color: Colors.indigo, size: 28),
+                                                ),
+                                              ),
+                                            )
+                                          : const Icon(Icons.business, color: Colors.indigo, size: 28),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -422,22 +430,32 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.all(12),
-                                  leading: Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(8),
-                                      image: logoBase64 != null
-                                          ? DecorationImage(
-                                        image: MemoryImage(convert.base64Decode(logoBase64)),
-                                        fit: BoxFit.cover,
-                                      )
-                                          : null,
-                                    ),
-                                    child: logoBase64 == null
-                                        ? const Icon(Icons.business, color: Colors.grey)
-                                        : null,
+                                  leading: Builder(
+                                    builder: (context) {
+                                      final logoBytes = safeBase64Decode(logoBase64);
+                                      return Container(
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          color: Colors.indigo.shade50,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.indigo.shade100),
+                                        ),
+                                        child: logoBytes != null
+                                            ? ClipRRect(
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Image.memory(
+                                                  logoBytes,
+                                                  fit: BoxFit.cover,
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                  errorBuilder: (context, error, stackTrace) =>
+                                                      const Icon(Icons.business, color: Colors.indigo),
+                                                ),
+                                              )
+                                            : const Icon(Icons.business, color: Colors.indigo),
+                                      );
+                                    },
                                   ),
                                   title: Text(
                                     businessName,

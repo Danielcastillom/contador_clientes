@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../utils/download_helper.dart';
+import '../../utils/image_helper.dart';
 import '../auth/login_view.dart';
 
 class FolderNode {
@@ -490,28 +491,35 @@ class _ClientDashboardState extends State<ClientDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                color: Colors.indigo.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.indigo.shade200),
-              ),
-              child: logoBase64 != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(6.0),
-                        child: Image.memory(
-                          convert.base64Decode(logoBase64),
-                          fit: BoxFit.contain,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
-                      ),
-                    )
-                  : const Icon(Icons.business, size: 40, color: Colors.indigo),
+            Builder(
+              builder: (context) {
+                final logoBytes = safeBase64Decode(logoBase64);
+                return Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.indigo.shade200),
+                  ),
+                  child: logoBytes != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: Image.memory(
+                              logoBytes,
+                              fit: BoxFit.contain,
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.business, size: 40, color: Colors.indigo),
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.business, size: 40, color: Colors.indigo),
+                );
+              },
             ),
             const SizedBox(height: 12),
             const Text(
