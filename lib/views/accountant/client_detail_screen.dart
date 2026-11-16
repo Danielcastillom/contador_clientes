@@ -1093,6 +1093,41 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     );
   }
 
+  Future<void> _pickAndUpdateClientLogo() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        Uint8List bytes = result.files.single.bytes!;
+        String newLogoBase64 = convert.base64Encode(bytes);
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.client.clientId)
+            .set({'logoBase64': newLogoBase64}, SetOptions(merge: true));
+
+        await FirebaseFirestore.instance
+            .collection('clients')
+            .doc(widget.client.clientId)
+            .set({'logoBase64': newLogoBase64}, SetOptions(merge: true));
+
+        if (!mounted) return;
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('¡Logo de la empresa actualizado con éxito!')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al actualizar el logo: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -1156,22 +1191,46 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    Container(
-                                      width: isMobile ? 55 : 75,
-                                      height: isMobile ? 55 : 75,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
+                                    Tooltip(
+                                      message: 'Haga clic para cambiar el logo de esta empresa',
+                                      child: InkWell(
+                                        onTap: _pickAndUpdateClientLogo,
                                         borderRadius: BorderRadius.circular(10),
-                                        image: logoBase64 != null
-                                            ? DecorationImage(
-                                          image: MemoryImage(convert.base64Decode(logoBase64)),
-                                          fit: BoxFit.cover,
-                                        )
-                                            : null,
+                                        child: Stack(
+                                          children: [
+                                            Container(
+                                              width: isMobile ? 60 : 80,
+                                              height: isMobile ? 60 : 80,
+                                              decoration: BoxDecoration(
+                                                color: Colors.indigo.shade50,
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(color: Colors.indigo.shade200, width: 1.5),
+                                                image: logoBase64 != null
+                                                    ? DecorationImage(
+                                                        image: MemoryImage(convert.base64Decode(logoBase64)),
+                                                        fit: BoxFit.cover,
+                                                      )
+                                                    : null,
+                                              ),
+                                              child: logoBase64 == null
+                                                  ? Icon(Icons.business, size: isMobile ? 30 : 40, color: Colors.indigo)
+                                                  : null,
+                                            ),
+                                            Positioned(
+                                              bottom: 2,
+                                              right: 2,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(3),
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.indigo,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(Icons.edit, size: 12, color: Colors.white),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      child: logoBase64 == null
-                                          ? Icon(Icons.business, size: isMobile ? 28 : 38, color: Colors.grey)
-                                          : null,
                                     ),
                                     const SizedBox(width: 14),
                                     Expanded(

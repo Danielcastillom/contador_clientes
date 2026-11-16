@@ -1,5 +1,8 @@
+import 'dart:convert' as convert;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../models/client_model.dart';
 
 class EditClientScreen extends StatefulWidget {
@@ -17,6 +20,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
   late TextEditingController _taxIdController;
   late TextEditingController _emailController;
   late TextEditingController _pendingTaxController;
+  String? _logoBase64;
   bool _isLoading = false;
 
   @override
@@ -26,6 +30,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
     _taxIdController = TextEditingController(text: widget.client.taxId);
     _emailController = TextEditingController(text: widget.client.email);
     _pendingTaxController = TextEditingController(text: widget.client.pendingTaxAmount.toString());
+    _logoBase64 = widget.client.logoBase64;
   }
 
   @override
@@ -35,6 +40,28 @@ class _EditClientScreenState extends State<EditClientScreen> {
     _emailController.dispose();
     _pendingTaxController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickLogo() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        Uint8List bytes = result.files.single.bytes!;
+        setState(() {
+          _logoBase64 = convert.base64Encode(bytes);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al seleccionar imagen: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _updateClient() async {
@@ -48,6 +75,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
         'taxId': _taxIdController.text.trim(),
         'email': _emailController.text.trim(),
         'pendingTaxAmount': double.tryParse(_pendingTaxController.text.trim()) ?? 0.0,
+        'logoBase64': _logoBase64,
       };
 
       await FirebaseFirestore.instance.collection('users').doc(widget.client.clientId).set(updateData, SetOptions(merge: true));
@@ -55,9 +83,9 @@ class _EditClientScreenState extends State<EditClientScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cliente actualizado exitosamente')),
+          const SnackBar(content: Text('¡Cliente y logo actualizados exitosamente!')),
         );
-        Navigator.pop(context, true); // Regresa indicando éxito
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
@@ -86,10 +114,56 @@ class _EditClientScreenState extends State<EditClientScreen> {
               child: ListView(
                 children: [
                   const Text(
-                    'Actualizar Datos Fiscales',
+                    'Actualizar Datos y Logo',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.indigo),
                   ),
                   const SizedBox(height: 20),
+
+                  // Sección del Logo de la Empresa
+                  Center(
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: _pickLogo,
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: Colors.indigo.shade50,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.indigo.shade200, width: 2),
+                            ),
+                            child: _logoBase64 != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: Image.memory(
+                                      convert.base64Decode(_logoBase64!),
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                                  )
+                                : const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.add_a_photo, color: Colors.indigo, size: 36),
+                                      SizedBox(height: 4),
+                                      Text('Subir Logo', style: TextStyle(fontSize: 12, color: Colors.indigo, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: _pickLogo,
+                          icon: const Icon(Icons.image, size: 18),
+                          label: Text(_logoBase64 != null ? 'Cambiar Logo de la Empresa' : 'Agregar Logo de la Empresa'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
                   TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(labelText: 'Nombre de la Empresa o Cliente', border: OutlineInputBorder()),

@@ -1,7 +1,10 @@
+import 'dart:convert' as convert;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:file_picker/file_picker.dart';
 
 class AddClientDialog extends StatefulWidget {
   const AddClientDialog({super.key});
@@ -17,6 +20,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _taxIdController = TextEditingController();
   final TextEditingController _pendingTaxController = TextEditingController();
+  String? _logoBase64;
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -28,6 +32,28 @@ class _AddClientDialogState extends State<AddClientDialog> {
     _taxIdController.dispose();
     _pendingTaxController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickLogo() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        Uint8List bytes = result.files.single.bytes!;
+        setState(() {
+          _logoBase64 = convert.base64Encode(bytes);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al seleccionar imagen: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _saveClient() async {
@@ -62,6 +88,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
         'email': email,
         'taxId': _taxIdController.text.trim(),
         'pendingTaxAmount': double.tryParse(_pendingTaxController.text.trim()) ?? 0.0,
+        'logoBase64': _logoBase64,
         'role': 'client',
         'accountantId': accountantEmail,
         'createdAt': FieldValue.serverTimestamp(),
@@ -117,6 +144,43 @@ class _AddClientDialogState extends State<AddClientDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Selector de Logo del Cliente
+                GestureDetector(
+                  onTap: _pickLogo,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.indigo.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.indigo.shade200, width: 1.5),
+                    ),
+                    child: _logoBase64 != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.memory(
+                              convert.base64Decode(_logoBase64!),
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
+                          )
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_a_photo, color: Colors.indigo, size: 28),
+                              SizedBox(height: 2),
+                              Text('Logo', style: TextStyle(fontSize: 11, color: Colors.indigo, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _pickLogo,
+                  child: Text(_logoBase64 != null ? 'Cambiar Logo' : 'Subir Logo de la Empresa (Opcional)', style: const TextStyle(fontSize: 12)),
+                ),
+                const SizedBox(height: 8),
+
                 TextFormField(
                   controller: _businessNameController,
                   decoration: const InputDecoration(labelText: 'Nombre de la Empresa o Cliente', prefixIcon: Icon(Icons.business)),
