@@ -28,6 +28,13 @@ class ClientModel {
     };
   }
 
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
   // Acepta primero el Map y luego el ID (como lo está llamando database_service.dart)
   factory ClientModel.fromMap(Map<String, dynamic> map, String id) {
     return ClientModel(
@@ -37,7 +44,7 @@ class ClientModel {
       taxId: map['taxId'] ?? map['rif'] ?? '',
       accountantId: map['accountantId'] ?? '',
       logoBase64: map['logoBase64'],
-      pendingTaxAmount: (map['pendingTaxAmount'] ?? 0.0).toDouble(),
+      pendingTaxAmount: _parseDouble(map['pendingTaxAmount']),
     );
   }
 }

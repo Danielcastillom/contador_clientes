@@ -26,6 +26,7 @@ class ClientDashboard extends StatefulWidget {
 
 class _ClientDashboardState extends State<ClientDashboard> {
   String _selectedMonthFilter = 'TODOS';
+  bool _hasCleanedOldDocuments = false;
 
   bool isProtectedPath(String folderPath) {
     String upper = folderPath.toUpperCase().trim();
@@ -384,7 +385,8 @@ class _ClientDashboardState extends State<ClientDashboard> {
 
                   var documents = docSnapshot.data?.docs ?? [];
 
-                  if (documents.isNotEmpty) {
+                  if (documents.isNotEmpty && !_hasCleanedOldDocuments) {
+                    _hasCleanedOldDocuments = true;
                     _autoClean3MonthsRollingDocuments(documents);
                   }
 

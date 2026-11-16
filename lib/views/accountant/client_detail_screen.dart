@@ -28,6 +28,7 @@ class ClientDetailScreen extends StatefulWidget {
 class _ClientDetailScreenState extends State<ClientDetailScreen> {
   bool _isUploading = false;
   String _selectedMonthFilter = 'TODOS';
+  bool _hasCleanedOldDocuments = false;
 
   bool isProtectedPath(String folderPath) {
     String upper = folderPath.toUpperCase().trim();
@@ -1385,7 +1386,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
 
                             var documents = docSnapshot.data?.docs ?? [];
 
-                            if (documents.isNotEmpty) {
+                            if (documents.isNotEmpty && !_hasCleanedOldDocuments) {
+                              _hasCleanedOldDocuments = true;
                               _autoClean3MonthsRollingDocuments(documents);
                             }
 
