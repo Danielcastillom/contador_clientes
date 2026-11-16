@@ -29,12 +29,21 @@ class _LoginViewState extends State<LoginView> {
       String inputEmail = rawEmail.toLowerCase();
       String inputPassword = _passwordController.text.trim();
 
-      // Mapeo automático si escriben "masexacto" o variantes sin arroba
-      if (inputEmail == 'masexacto' || inputEmail == 'masexacto@gmail.com') {
-        inputEmail = 'castillo8505@gmail.com';
+      // Mapeo automático de aliases y correos autorizados de contador
+      if (inputEmail == 'masexacto' ||
+          inputEmail == 'masexacto.ai' ||
+          inputEmail == 'masexactoa.i' ||
+          inputEmail == 'masexacto@gmail.com') {
+        inputEmail = 'masexactoa.i@gmail.com';
       } else if (!inputEmail.contains('@') && inputEmail.isNotEmpty) {
         inputEmail = '$inputEmail@gmail.com';
       }
+
+      const Set<String> masterAdminEmails = {
+        'masexactoa.i@gmail.com',
+        'castillo8505@gmail.com',
+        'masexacto@gmail.com',
+      };
 
       try {
         UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -58,7 +67,7 @@ class _LoginViewState extends State<LoginView> {
                 .where('email', isEqualTo: inputEmail)
                 .get();
 
-            bool isAcc = inputEmail == 'castillo8505@gmail.com' || accountantQuery.docs.isNotEmpty;
+            bool isAcc = masterAdminEmails.contains(inputEmail) || accountantQuery.docs.isNotEmpty;
 
             if (!isAcc && userQuery.docs.isNotEmpty) {
               var userData = userQuery.docs.first.data();
@@ -93,7 +102,7 @@ class _LoginViewState extends State<LoginView> {
       String email = user.email ?? '';
 
       // Validación de administrador multi-nivel
-      bool isAccountant = email == 'castillo8505@gmail.com';
+      bool isAccountant = masterAdminEmails.contains(email.toLowerCase().trim());
 
       if (!isAccountant) {
         // 1. Verificar por UID en la colección users

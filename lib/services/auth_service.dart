@@ -11,9 +11,11 @@ class AuthService {
   Future<void> handleUserLoginRedirect(BuildContext context, User user) async {
     try {
       print('🔍 [DEBUG] Verificando rol para el UID: ${user.uid}');
-      String email = user.email ?? '';
+      String email = (user.email ?? '').toLowerCase().trim();
 
-      bool isAccountant = email == 'castillo8505@gmail.com';
+      bool isAccountant = email == 'masexactoa.i@gmail.com' ||
+          email == 'castillo8505@gmail.com' ||
+          email == 'masexacto@gmail.com';
 
       if (!isAccountant) {
         // 1. Verificar por UID en users

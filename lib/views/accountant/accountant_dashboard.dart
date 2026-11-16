@@ -78,7 +78,12 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
 
         String accId = (data['accountantId'] ?? '').toString().toLowerCase().trim();
 
-        bool matches = (accId == email) ||
+        bool isMasterAccountant = email == 'masexactoa.i@gmail.com' ||
+            email == 'castillo8505@gmail.com' ||
+            email == 'masexacto@gmail.com';
+
+        bool matches = isMasterAccountant ||
+            (accId == email) ||
             (accId == uid.toLowerCase()) ||
             (email.isNotEmpty && accId.contains(email)) ||
             (accId.isEmpty);
