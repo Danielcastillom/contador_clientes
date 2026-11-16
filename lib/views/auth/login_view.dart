@@ -113,10 +113,36 @@ class _LoginViewState extends State<LoginView> {
           MaterialPageRoute(builder: (context) => const ClientPortalView()),
         );
       }
+    } on FirebaseAuthException catch (e) {
+      String userFriendlyMessage = 'Error de inicio de sesión (${e.code}): ${e.message}';
+      if (e.code == 'unknown-error') {
+        userFriendlyMessage =
+            'Error de conexión con Firebase Auth (unknown-error).\n'
+            '1. Verifica la fecha y hora de la computadora (debe estar ajustada automáticamente).\n'
+            '2. Revisa la conexión a internet o desactiva temporalmente el antivirus/VPN.';
+      } else if (e.code == 'invalid-credential' || e.code == 'wrong-password' || e.code == 'user-not-found') {
+        userFriendlyMessage = 'Correo electrónico o contraseña incorrectos.';
+      } else if (e.code == 'network-request-failed') {
+        userFriendlyMessage = 'Error de red. Verifica tu conexión a internet.';
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(userFriendlyMessage),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al iniciar sesión: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al iniciar sesión: $e'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
