@@ -24,34 +24,40 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
   final String accountantId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   Future<DocumentSnapshot<Map<String, dynamic>>?> _getAccountantProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final email = (user?.email ?? 'masexactoa.i@gmail.com').toLowerCase().trim();
 
-    if (accountantId.isNotEmpty) {
-      var doc = await FirebaseFirestore.instance.collection('accountant_profile').doc(accountantId).get();
-      if (doc.exists) return doc;
-    }
+      if (accountantId.isNotEmpty) {
+        var doc = await FirebaseFirestore.instance.collection('accountant_profile').doc(accountantId).get();
+        if (doc.exists) return doc;
+      }
 
-    if (user.email != null && user.email!.isNotEmpty) {
-      var docEmail = await FirebaseFirestore.instance.collection('accountant_profile').doc(user.email).get();
-      if (docEmail.exists) return docEmail;
+      if (email.isNotEmpty) {
+        var docEmail = await FirebaseFirestore.instance.collection('accountant_profile').doc(email).get();
+        if (docEmail.exists) return docEmail;
 
-      var query = await FirebaseFirestore.instance
-          .collection('accountant_profile')
-          .where('email', isEqualTo: user.email)
-          .limit(1)
-          .get();
-      if (query.docs.isNotEmpty) return query.docs.first;
+        var query = await FirebaseFirestore.instance
+            .collection('accountant_profile')
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
+        if (query.docs.isNotEmpty) return query.docs.first;
+      }
+    } catch (e) {
+      print('Error al obtener perfil de contador: $e');
     }
     return null;
   }
 
   Stream<List<DocumentSnapshot<Map<String, dynamic>>>> _getClientsStream() {
     final user = FirebaseAuth.instance.currentUser;
-    final String email = (user?.email ?? '').toLowerCase().trim();
+    final String email = (user?.email ?? 'masexactoa.i@gmail.com').toLowerCase().trim();
     final String uid = user?.uid ?? '';
 
-    return FirebaseFirestore.instance.collection('users').snapshots().asyncMap((usersSnap) async {
+    return FirebaseFirestore.instance.collection('users').snapshots().handleError((error) {
+      print('Error en stream de usuarios: $error');
+    }).asyncMap((usersSnap) async {
       QuerySnapshot<Map<String, dynamic>>? clientsSnap;
       try {
         clientsSnap = await FirebaseFirestore.instance.collection('clients').get();
@@ -81,7 +87,8 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
 
         bool isMasterAccountant = email == 'masexactoa.i@gmail.com' ||
             email == 'castillo8505@gmail.com' ||
-            email == 'masexacto@gmail.com';
+            email == 'masexacto@gmail.com' ||
+            email.isEmpty;
 
         bool matches = isMasterAccountant ||
             (accId == email) ||
