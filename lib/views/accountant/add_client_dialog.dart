@@ -87,7 +87,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
         'businessName': _businessNameController.text.trim(),
         'email': email,
         'taxId': _taxIdController.text.trim(),
-        'pendingTaxAmount': double.tryParse(_pendingTaxController.text.trim()) ?? 0.0,
+        'pendingTaxAmount': double.tryParse(_pendingTaxController.text.trim().replaceAll('.', '').replaceAll(',', '.')) ?? 0.0,
         'logoBase64': _logoBase64,
         'role': 'client',
         'accountantId': accountantEmail,
@@ -224,7 +224,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _pendingTaxController,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'Impuestos por Pagar (Bs.)', prefixIcon: Icon(Icons.money)),
                   validator: (value) => value!.isEmpty ? 'Ingresa el monto inicial' : null,
                 ),

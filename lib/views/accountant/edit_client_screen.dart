@@ -29,7 +29,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
     _nameController = TextEditingController(text: widget.client.businessName);
     _taxIdController = TextEditingController(text: widget.client.taxId);
     _emailController = TextEditingController(text: widget.client.email);
-    _pendingTaxController = TextEditingController(text: widget.client.pendingTaxAmount.toString());
+    _pendingTaxController = TextEditingController(text: widget.client.pendingTaxAmount.toStringAsFixed(2).replaceFirst('.', ','));
     _logoBase64 = widget.client.logoBase64;
   }
 
@@ -74,7 +74,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
         'businessName': _nameController.text.trim(),
         'taxId': _taxIdController.text.trim(),
         'email': _emailController.text.trim(),
-        'pendingTaxAmount': double.tryParse(_pendingTaxController.text.trim()) ?? 0.0,
+        'pendingTaxAmount': double.tryParse(_pendingTaxController.text.trim().replaceAll('.', '').replaceAll(',', '.')) ?? 0.0,
         'logoBase64': _logoBase64,
       };
 
