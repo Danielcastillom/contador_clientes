@@ -407,6 +407,64 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     }
   }
 
+  Future<void> _createNewMainFolderDialog() async {
+    final TextEditingController nameController = TextEditingController();
+
+    bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Crear Nueva Carpeta Principal'),
+          content: TextField(
+            controller: nameController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Nombre de la Carpeta',
+              hintText: 'Ej. FINANZAS, AUDITORIA...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.trim().isEmpty) return;
+                Navigator.pop(context, true);
+              },
+              child: const Text('Crear Carpeta'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && nameController.text.trim().isNotEmpty) {
+      String folderName = nameController.text.toUpperCase().trim();
+
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.client.clientId)
+            .set({
+          'folderPaths': FieldValue.arrayUnion([folderName]),
+        }, SetOptions(merge: true));
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('¡Carpeta principal "$folderName" creada con éxito!')),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al crear carpeta: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _renameFolderDialog(String currentPath, String oldFolderName) async {
     TextEditingController nameController = TextEditingController(text: oldFolderName);
 
@@ -1310,6 +1368,17 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                             ),
                             const SizedBox(height: 8),
                             OutlinedButton.icon(
+                              onPressed: _createNewMainFolderDialog,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.indigo,
+                                side: const BorderSide(color: Colors.indigo),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              icon: const Icon(Icons.create_new_folder),
+                              label: const Text('Nueva Carpeta'),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
                               onPressed: _clearAllDocuments,
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.red,
@@ -1330,6 +1399,16 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                             ),
                             Row(
                               children: [
+                                OutlinedButton.icon(
+                                  onPressed: _createNewMainFolderDialog,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.indigo,
+                                    side: const BorderSide(color: Colors.indigo),
+                                  ),
+                                  icon: const Icon(Icons.create_new_folder),
+                                  label: const Text('Nueva Carpeta'),
+                                ),
+                                const SizedBox(width: 8),
                                 OutlinedButton.icon(
                                   onPressed: _clearAllDocuments,
                                   style: OutlinedButton.styleFrom(
