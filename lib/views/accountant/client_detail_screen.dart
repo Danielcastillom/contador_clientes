@@ -1328,7 +1328,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                                         style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.amber),
                                       ),
                                       Text(
-                                        '\$${pendingTax.toStringAsFixed(2)}',
+                                        'Bs. ${pendingTax.toStringAsFixed(2)}',
                                         style: TextStyle(fontSize: isMobile ? 16 : 20, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
                                       ),
                                     ],

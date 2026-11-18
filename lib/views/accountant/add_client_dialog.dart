@@ -225,7 +225,7 @@ class _AddClientDialogState extends State<AddClientDialog> {
                 TextFormField(
                   controller: _pendingTaxController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Impuestos por Pagar (\$)', prefixIcon: Icon(Icons.attach_money)),
+                  decoration: const InputDecoration(labelText: 'Impuestos por Pagar (Bs.)', prefixIcon: Icon(Icons.money)),
                   validator: (value) => value!.isEmpty ? 'Ingresa el monto inicial' : null,
                 ),
               ],

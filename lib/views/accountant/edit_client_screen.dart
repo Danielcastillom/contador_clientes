@@ -185,7 +185,7 @@ class _EditClientScreenState extends State<EditClientScreen> {
                   TextFormField(
                     controller: _pendingTaxController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Impuestos por Pagar (\$)', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Impuestos por Pagar (Bs.)', border: OutlineInputBorder()),
                     validator: (value) => value!.isEmpty ? 'Ingresa el monto' : null,
                   ),
                   const SizedBox(height: 30),

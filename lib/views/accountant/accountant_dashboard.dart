@@ -473,7 +473,7 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
                                     children: [
                                       const SizedBox(height: 4),
                                       Text('RIF: $taxId', style: const TextStyle(fontSize: 13)),
-                                      Text('Impuestos por Pagar: \$${pendingTax.toStringAsFixed(2)}',
+                                      Text('Impuestos por Pagar: Bs. ${pendingTax.toStringAsFixed(2)}',
                                           style: TextStyle(fontSize: 13, color: Colors.amber.shade900, fontWeight: FontWeight.w600)),
                                     ],
                                   ),

@@ -292,7 +292,7 @@ class _ClientDashboardState extends State<ClientDashboard> {
               '${subNode.subFolders.length} subcarpeta(s), ${subNode.documents.length} archivo(s)',
               style: const TextStyle(fontSize: 11),
             ),
-            initiallyExpanded: true,
+            initiallyExpanded: false,
             children: [
               if (hasSubFolders)
                 Padding(
@@ -334,7 +334,7 @@ class _ClientDashboardState extends State<ClientDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mi Portal y Documentos'),
+        title: const Text('PORTAL TRIBUTARIO'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
