@@ -30,9 +30,10 @@ class _ClientDashboardState extends State<ClientDashboard> {
 
   bool isProtectedPath(String folderPath) {
     String upper = folderPath.toUpperCase().trim();
-    if (upper.contains('LEGALES') ||
+    if (upper.contains('RUTA DE PERMISOLOGIA') ||
         upper.contains('DOCUMENTACION LEGAL') ||
-        upper.contains('DOCUMENTACIÓN LEGAL')) {
+        upper.contains('DOCUMENTACIÓN LEGAL') ||
+        upper.contains('LEGALES')) {
       return true;
     }
     return false;
@@ -150,26 +151,14 @@ class _ClientDashboardState extends State<ClientDashboard> {
     FolderNode root = FolderNode(name: 'Root');
 
     Set<String> allFolderPaths = {
-      'LEGALES',
+      'RUTA DE PERMISOLOGIA Y LEGALIZACIÒN DE TU EMPRESA',
       'DOCUMENTACION LEGAL',
       'ALCALDÍA',
-      'ALCALDÍA/SADTC',
-      'ALCALDÍA/SADTC/RENOVACION ANUAL',
-      'ALCALDÍA/SIGAT',
-      'ALCALDÍA/SIGAT/PERMISO PUBLICIDAD',
-      'DPP',
-      'PARAFISCALES',
-      'PARAFISCALES/IVSS',
-      'PARAFISCALES/FAOV',
-      'PARAFISCALES/INCES',
       'SENIAT',
-      'SENIAT/IVA',
-      'SENIAT/ISLR',
-      'SENIAT/RETENCIONES',
-      'SACS',
-      'SACS/PERMISO SANITARIO',
-      'SACS/CERTIFICADO DE SALUD',
-      'SACS/MANIPULACION DE ALIMENTOS',
+      'LIBROS CONTABLES',
+      'PARAFISCALES',
+      'PERMISOLOGIA DE FUNCIONAMIENTO',
+      'ENTES DE CONTROL',
     };
     if (storedFolderPaths != null) {
       for (var p in storedFolderPaths) {
