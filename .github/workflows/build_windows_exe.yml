@@ -31,6 +31,9 @@ jobs:
       - name: 🛠️ Habilitar soporte para Windows Desktop
         run: flutter config --enable-windows-desktop
 
+      - name: 📦 Precache Windows
+        run: flutter precache --windows
+
       - name: 📦 Obtener dependencias del proyecto
         run: flutter pub get
 
