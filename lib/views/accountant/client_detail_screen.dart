@@ -33,6 +33,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
   bool isProtectedPath(String folderPath) {
     String upper = folderPath.toUpperCase().trim();
     if (upper.contains('RUTA DE PERMISOLOGIA') ||
+        upper.contains('RUTA DE PERMISOLOGÍA') ||
+        upper.contains('LEGALIZACION') ||
+        upper.contains('LEGALIZACIÓN') ||
         upper.contains('DOCUMENTACION LEGAL') ||
         upper.contains('DOCUMENTACIÓN LEGAL') ||
         upper.contains('LEGALES')) {
