@@ -143,24 +143,22 @@ class _ClientDashboardState extends State<ClientDashboard> {
     }
   }
 
+  String _normalizePath(String path) {
+    return path.split('/')
+        .map((part) => part.replaceFirst(RegExp(r'^\d+\.\s*'), '').trim().toUpperCase())
+        .join('/');
+  }
+
   FolderNode _buildFolderTree(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, [
     List<dynamic>? storedFolderPaths,
+    List<dynamic>? deletedFolders,
     String selectedMonthFilter = 'TODOS',
   ]) {
     FolderNode root = FolderNode(name: 'Root');
 
-    Set<String> allFolderPaths = {
-      'RUTA DE PERMISOLOGIA Y LEGALIZACIÒN DE TU EMPRESA',
-      'DOCUMENTACION LEGAL',
-      'ALCALDÍA',
-      'SENIAT',
-      'LIBROS CONTABLES',
-      'PARAFISCALES',
-      'PERMISOLOGIA DE FUNCIONAMIENTO',
-      'ENTES DE CONTROL',
-    };
-    if (storedFolderPaths != null) {
+    Set<String> allFolderPaths = {};
+    if (storedFolderPaths != null && storedFolderPaths.isNotEmpty) {
       for (var p in storedFolderPaths) {
         if (p != null && p.toString().trim().isNotEmpty) {
           allFolderPaths.add(p.toString().toUpperCase().trim());
@@ -168,8 +166,90 @@ class _ClientDashboardState extends State<ClientDashboard> {
       }
     }
 
-    // Inicializar carpetas base y subcarpetas para mantener la estructura intacta en MAYÚSCULAS
+    if (allFolderPaths.isEmpty) {
+      allFolderPaths.addAll({
+        '1. RUTA DE PERMISOLOGIA Y LEGALIZACION',
+        '1. RUTA DE PERMISOLOGIA Y LEGALIZACION/REVISTA MAS EXACTO',
+        '2. DOCUMENTACION LEGAL',
+        '2. DOCUMENTACION LEGAL/ACTA CONSTITUTIVA Y ASAMBLEA',
+        '2. DOCUMENTACION LEGAL/CEDULAS Y RIF',
+        '2. DOCUMENTACION LEGAL/ISLR ANUAL',
+        '2. DOCUMENTACION LEGAL/PUBLICACION MERCANTIL',
+        '2. DOCUMENTACION LEGAL/RIF (REGISTRO DE IDENTIFICACION FISCAL) - EMPRESA',
+        '3. SENIAT',
+        '3. SENIAT/DPP (DECLARACION PROTECCION A LAS PENSIONES)',
+        '3. SENIAT/ISLRD SS Y OTRAS',
+        '3. SENIAT/IVA (IMPUESTO SOBRE LA RENTA)',
+        '4. ALCALDÍA',
+        '4. ALCALDÍA/ACTIVIDADES ECONOMICAS',
+        '4. ALCALDÍA/ASEO URBANO',
+        '4. ALCALDÍA/PUBLICIDAD',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/PERMISO DE LICORES Y CIGARRILLOS',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SACS (SANIDAD Y ALIMENTOS)',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SADTC - PERMISO BOMBEROS',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SENCAMER (CALIDAD Y METROLOGIA)',
+        '6. ENTES DE CONTROL',
+        '6. ENTES DE CONTROL/CONAPDIS (CONSEJO NACIONAL PARA LAS PERSONAS CON DISCAPACIDAD)',
+        '6. ENTES DE CONTROL/FONACIT (CIENCIA Y TECNOLOGIA)',
+        '6. ENTES DE CONTROL/INPSASEL',
+        '6. ENTES DE CONTROL/RUPDAE',
+        '6. ENTES DE CONTROL/SNC (CONTRATACIONES PUBLICAS)',
+        '6. ENTES DE CONTROL/SUNAGRO (AGROLIMENTOS)',
+        '7. PARAFISCALES',
+        '7. PARAFISCALES/FAOV (FONDO DE AHORRO OBLIGATORIO PARA LA VIVIENDA)',
+        '7. PARAFISCALES/INCES (INSTITUTO NACIONAL DE CAPACITACION Y EDUCACION SOCIALISTA)',
+        '7. PARAFISCALES/IVSS (INSTITUTO VENEZOLANO DE LOS SEGUROS)',
+        '7. PARAFISCALES/MPPPTS (MINTRASS) - MINISTERIO DEL PODER POPULAR PARA EL PROCESO SOCIAL DEL TRABAJO',
+        '8. LIBROS CONTABLES',
+        '8. LIBROS CONTABLES/A - LIBRO CONTABLES',
+        '8. LIBROS CONTABLES/B - LIBRO VENTAS',
+        '8. LIBROS CONTABLES/C - LIBRO DIARIO',
+        '8. LIBROS CONTABLES/D - LIBRO MAYOR',
+        '8. LIBROS CONTABLES/E - LIBRO DE INVENTARIOS',
+        '8. LIBROS CONTABLES/F - CONTROL DE ENTRADAS Y SALIDA DE INVENTARIO',
+      });
+    }
+
+    Set<String> excluded = {};
+    if (deletedFolders != null) {
+      for (var d in deletedFolders) {
+        if (d != null) {
+          String dStr = d.toString().toUpperCase().trim();
+          if (!RegExp(r'^\d+\.').hasMatch(dStr)) {
+            excluded.add(_normalizePath(dStr));
+          }
+        }
+      }
+    }
+
+    Set<String> finalFolderPaths = {};
     for (String path in allFolderPaths) {
+      String normPath = _normalizePath(path);
+      bool isExcluded = excluded.any((ex) => normPath == ex || normPath.startsWith('$ex/'));
+      if (storedFolderPaths == null || storedFolderPaths.isEmpty) {
+        String upperPath = path.toUpperCase().trim();
+        if (upperPath.contains('SADTC') ||
+            upperPath.contains('SIGAT') ||
+            upperPath.contains('IVSS') ||
+            upperPath.contains('FAOV') ||
+            upperPath.contains('INCES') ||
+            upperPath.contains('IVA') ||
+            upperPath.contains('ISLR') ||
+            upperPath.contains('RETENCIONES') ||
+            upperPath.contains('SACS') ||
+            upperPath.contains('DPP') ||
+            upperPath == 'LEGALES') {
+          isExcluded = true;
+        }
+      }
+      if (!isExcluded) {
+        finalFolderPaths.add(path);
+      }
+    }
+
+    // Inicializar carpetas base y subcarpetas para mantener la estructura intacta en MAYÚSCULAS
+    for (String path in finalFolderPaths) {
       List<String> parts = path.split('/').map((p) => p.trim().toUpperCase()).where((p) => p.isNotEmpty).toList();
       FolderNode currentNode = root;
       for (String part in parts) {
@@ -190,6 +270,28 @@ class _ClientDashboardState extends State<ClientDashboard> {
       }
 
       String rawPath = data['folderPath'] ?? data['category'] ?? 'GENERAL';
+      String normRawPath = _normalizePath(rawPath);
+      bool isPathExcluded = excluded.any((ex) => normRawPath == ex || normRawPath.startsWith('$ex/'));
+      if (storedFolderPaths == null || storedFolderPaths.isEmpty) {
+        String upperRawPath = rawPath.toUpperCase().trim();
+        if (upperRawPath.contains('SADTC') ||
+            upperRawPath.contains('SIGAT') ||
+            upperRawPath.contains('IVSS') ||
+            upperRawPath.contains('FAOV') ||
+            upperRawPath.contains('INCES') ||
+            upperRawPath.contains('IVA') ||
+            upperRawPath.contains('ISLR') ||
+            upperRawPath.contains('RETENCIONES') ||
+            upperRawPath.contains('SACS') ||
+            upperRawPath.contains('DPP') ||
+            upperRawPath == 'LEGALES') {
+          isPathExcluded = true;
+        }
+      }
+      if (isPathExcluded) {
+        continue;
+      }
+
       List<String> parts = rawPath.split('/').map((p) => p.trim().toUpperCase()).where((p) => p.isNotEmpty).toList();
       if (parts.isEmpty) parts = ['GENERAL'];
 
@@ -397,7 +499,8 @@ class _ClientDashboardState extends State<ClientDashboard> {
                     builder: (context, constraints) {
                       bool isWide = constraints.maxWidth > 850;
 
-                      FolderNode rootNode = _buildFolderTree(documents, storedFolderPaths, _selectedMonthFilter);
+                      List<dynamic>? deletedFolders = userData?['deletedFolders'] as List<dynamic>?;
+                      FolderNode rootNode = _buildFolderTree(documents, storedFolderPaths, deletedFolders, _selectedMonthFilter);
 
                       Widget documentsView = Padding(
                         padding: const EdgeInsets.all(16),

@@ -140,6 +140,154 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
     }
   }
 
+  Future<void> _syncFoldersFromCCSSHOPP() async {
+    try {
+      QuerySnapshot query = await FirebaseFirestore.instance
+          .collection('clients')
+          .get();
+
+      DocumentSnapshot? ccsDoc;
+      String ccsCollection = 'clients';
+      for (var doc in query.docs) {
+        var data = doc.data() as Map<String, dynamic>;
+        String bName = (data['businessName'] ?? '').toString().toUpperCase();
+        if (bName.contains('CCSSHOPP') || bName.contains('GROUP@CCSSHOPP')) {
+          ccsDoc = doc;
+          break;
+        }
+      }
+
+      if (ccsDoc == null) {
+        var usersQuery = await FirebaseFirestore.instance.collection('users').get();
+        for (var doc in usersQuery.docs) {
+          var data = doc.data() as Map<String, dynamic>;
+          String bName = (data['businessName'] ?? '').toString().toUpperCase();
+          if (bName.contains('CCSSHOPP') || bName.contains('GROUP@CCSSHOPP')) {
+            ccsDoc = doc;
+            ccsCollection = 'users';
+            break;
+          }
+        }
+      }
+
+      if (ccsDoc == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se encontró al cliente GROUP@CCSSHOPP FSPG, C.A.'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
+      var ccsData = ccsDoc.data() as Map<String, dynamic>;
+      Set<String> targetFolderPaths = {
+        '1. RUTA DE PERMISOLOGIA Y LEGALIZACION',
+        '1. RUTA DE PERMISOLOGIA Y LEGALIZACION/REVISTA MAS EXACTO',
+        '2. DOCUMENTACION LEGAL',
+        '2. DOCUMENTACION LEGAL/ACTA CONSTITUTIVA Y ASAMBLEA',
+        '2. DOCUMENTACION LEGAL/CEDULAS Y RIF',
+        '2. DOCUMENTACION LEGAL/ISLR ANUAL',
+        '2. DOCUMENTACION LEGAL/PUBLICACION MERCANTIL',
+        '2. DOCUMENTACION LEGAL/RIF (REGISTRO DE IDENTIFICACION FISCAL) - EMPRESA',
+        '3. SENIAT',
+        '3. SENIAT/DPP (DECLARACION PROTECCION A LAS PENSIONES)',
+        '3. SENIAT/ISLRD SS Y OTRAS',
+        '3. SENIAT/IVA (IMPUESTO SOBRE LA RENTA)',
+        '4. ALCALDÍA',
+        '4. ALCALDÍA/ACTIVIDADES ECONOMICAS',
+        '4. ALCALDÍA/ASEO URBANO',
+        '4. ALCALDÍA/PUBLICIDAD',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/PERMISO DE LICORES Y CIGARRILLOS',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SACS (SANIDAD Y ALIMENTOS)',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SADTC - PERMISO BOMBEROS',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SENCAMER (CALIDAD Y METROLOGIA)',
+        '6. ENTES DE CONTROL',
+        '6. ENTES DE CONTROL/CONAPDIS (CONSEJO NACIONAL PARA LAS PERSONAS CON DISCAPACIDAD)',
+        '6. ENTES DE CONTROL/FONACIT (CIENCIA Y TECNOLOGIA)',
+        '6. ENTES DE CONTROL/INPSASEL',
+        '6. ENTES DE CONTROL/RUPDAE',
+        '6. ENTES DE CONTROL/SNC (CONTRATACIONES PUBLICAS)',
+        '6. ENTES DE CONTROL/SUNAGRO (AGROLIMENTOS)',
+        '7. PARAFISCALES',
+        '7. PARAFISCALES/FAOV (FONDO DE AHORRO OBLIGATORIO PARA LA VIVIENDA)',
+        '7. PARAFISCALES/INCES (INSTITUTO NACIONAL DE CAPACITACION Y EDUCACION SOCIALISTA)',
+        '7. PARAFISCALES/IVSS (INSTITUTO VENEZOLANO DE LOS SEGUROS)',
+        '7. PARAFISCALES/MPPPTS (MINTRASS) - MINISTERIO DEL PODER POPULAR PARA EL PROCESO SOCIAL DEL TRABAJO',
+        '8. LIBROS CONTABLES',
+        '8. LIBROS CONTABLES/A - LIBRO CONTABLES',
+        '8. LIBROS CONTABLES/B - LIBRO VENTAS',
+        '8. LIBROS CONTABLES/C - LIBRO DIARIO',
+        '8. LIBROS CONTABLES/D - LIBRO MAYOR',
+        '8. LIBROS CONTABLES/E - LIBRO DE INVENTARIOS',
+        '8. LIBROS CONTABLES/F - CONTROL DE ENTRADAS Y SALIDA DE INVENTARIO',
+      };
+
+      List<dynamic> storedPaths = ccsData['folderPaths'] ?? [];
+      for (var p in storedPaths) {
+        if (p != null && p.toString().trim().isNotEmpty) {
+          targetFolderPaths.add(p.toString().toUpperCase().trim());
+        }
+      }
+
+      var ccsDocs = await FirebaseFirestore.instance
+          .collection(ccsCollection)
+          .doc(ccsDoc.id)
+          .collection('documents')
+          .get();
+
+      for (var doc in ccsDocs.docs) {
+        var docData = doc.data();
+        String rawPath = (docData['folderPath'] ?? docData['category'] ?? '').toString().toUpperCase().trim();
+        if (rawPath.isNotEmpty && rawPath != 'GENERAL') {
+          targetFolderPaths.add(rawPath);
+          List<String> parts = rawPath.split('/');
+          String built = '';
+          for (var part in parts) {
+            built = built.isEmpty ? part : '$built/$part';
+            targetFolderPaths.add(built);
+          }
+        }
+      }
+
+      List<String> finalTargetPaths = targetFolderPaths.toList();
+
+      var allClientsSnap = await FirebaseFirestore.instance.collection('clients').get();
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+
+      for (var doc in allClientsSnap.docs) {
+        batch.set(doc.reference, {
+          'folderPaths': finalTargetPaths,
+          'deletedFolders': [],
+        }, SetOptions(merge: true));
+      }
+
+      var allUsersSnap = await FirebaseFirestore.instance.collection('users').get();
+      for (var doc in allUsersSnap.docs) {
+        var data = doc.data();
+        String role = (data['role'] ?? '').toString().toLowerCase();
+        if (role != 'accountant' && role != 'master') {
+          batch.set(doc.reference, {
+            'folderPaths': finalTargetPaths,
+            'deletedFolders': [],
+          }, SetOptions(merge: true));
+        }
+      }
+
+      await batch.commit();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('¡Estructura de carpetas de GROUP@CCSSHOPP reemplazada en todos los clientes con éxito!')),
+      );
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al sincronizar carpetas: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String accountantEmail = FirebaseAuth.instance.currentUser?.email ?? 'Contador';
@@ -148,6 +296,11 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
       appBar: AppBar(
         title: Text('Panel de Contador ($accountantEmail)', overflow: TextOverflow.ellipsis),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.sync_alt),
+            tooltip: 'Sincronizar carpetas de GROUP@CCSSHOPP a todos los clientes',
+            onPressed: _syncFoldersFromCCSSHOPP,
+          ),
           IconButton(
             icon: const Icon(Icons.business),
             tooltip: 'Perfil y Logo de la Empresa',

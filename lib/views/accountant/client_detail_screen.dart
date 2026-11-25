@@ -348,6 +348,27 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     }
   }
 
+  Future<Map<String, dynamic>?> _getClientData() async {
+    try {
+      var doc = await FirebaseFirestore.instance.collection('users').doc(widget.client.clientId).get();
+      if (doc.exists && doc.data() != null) return doc.data();
+      var docClient = await FirebaseFirestore.instance.collection('clients').doc(widget.client.clientId).get();
+      if (docClient.exists && docClient.data() != null) return docClient.data();
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _saveClientFolders(List<dynamic> updatedPaths) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.client.clientId)
+        .set({'folderPaths': updatedPaths}, SetOptions(merge: true));
+    await FirebaseFirestore.instance
+        .collection('clients')
+        .doc(widget.client.clientId)
+        .set({'folderPaths': updatedPaths}, SetOptions(merge: true));
+  }
+
   Future<void> _createSubFolderDialog(String parentPath) async {
     final TextEditingController nameController = TextEditingController();
 
@@ -387,14 +408,15 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       String newFolderPath = parentPath.isEmpty ? subName : '$parentPath/$subName';
 
       try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.client.clientId)
-            .set({
-          'folderPaths': FieldValue.arrayUnion([newFolderPath]),
-        }, SetOptions(merge: true));
+        var data = await _getClientData();
+        List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+        if (!storedFolderPaths.contains(newFolderPath)) {
+          storedFolderPaths.add(newFolderPath);
+        }
+        await _saveClientFolders(storedFolderPaths);
 
         if (!mounted) return;
+        setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('¡Subcarpeta "$newFolderPath" creada con éxito!')),
         );
@@ -445,14 +467,15 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       String folderName = nameController.text.toUpperCase().trim();
 
       try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.client.clientId)
-            .set({
-          'folderPaths': FieldValue.arrayUnion([folderName]),
-        }, SetOptions(merge: true));
+        var data = await _getClientData();
+        List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+        if (!storedFolderPaths.contains(folderName)) {
+          storedFolderPaths.add(folderName);
+        }
+        await _saveClientFolders(storedFolderPaths);
 
         if (!mounted) return;
+        setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('¡Carpeta principal "$folderName" creada con éxito!')),
         );
@@ -504,12 +527,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       String newPath = pathParts.join('/');
 
       try {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.client.clientId)
-            .get();
-
-        Map<String, dynamic>? data = userDoc.data() as Map<String, dynamic>?;
+        var data = await _getClientData();
         List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
 
         List<dynamic> updatedPaths = [];
@@ -527,27 +545,26 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
           updatedPaths.add(newPath);
         }
 
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.client.clientId)
-            .set({'folderPaths': updatedPaths}, SetOptions(merge: true));
+        await _saveClientFolders(updatedPaths);
 
-        var docs = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.client.clientId)
-            .collection('documents')
-            .get();
+        for (String col in ['users', 'clients']) {
+          var docs = await FirebaseFirestore.instance
+              .collection(col)
+              .doc(widget.client.clientId)
+              .collection('documents')
+              .get();
 
-        WriteBatch batch = FirebaseFirestore.instance.batch();
-        for (var doc in docs.docs) {
-          String docPath = (doc.data()['folderPath'] ?? doc.data()['category'] ?? '').toString().toUpperCase().trim();
-          if (docPath == currentPath) {
-            batch.update(doc.reference, {'folderPath': newPath});
-          } else if (docPath.startsWith('$currentPath/')) {
-            batch.update(doc.reference, {'folderPath': docPath.replaceFirst(currentPath, newPath)});
+          WriteBatch batch = FirebaseFirestore.instance.batch();
+          for (var doc in docs.docs) {
+            String docPath = (doc.data()['folderPath'] ?? doc.data()['category'] ?? '').toString().toUpperCase().trim();
+            if (docPath == currentPath) {
+              batch.update(doc.reference, {'folderPath': newPath});
+            } else if (docPath.startsWith('$currentPath/')) {
+              batch.update(doc.reference, {'folderPath': docPath.replaceFirst(currentPath, newPath)});
+            }
           }
+          await batch.commit();
         }
-        await batch.commit();
 
         if (!mounted) return;
         setState(() {});
@@ -588,38 +605,47 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
 
     if (confirm == true) {
       try {
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.client.clientId)
-            .get();
-
-        Map<String, dynamic>? data = userDoc.data() as Map<String, dynamic>?;
+        var data = await _getClientData();
         List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+        List<dynamic> deletedFolders = List.from(data?['deletedFolders'] ?? []);
+
+        String normCurrent = _normalizePath(currentPath);
 
         List<dynamic> updatedPaths = storedFolderPaths.where((p) {
-          String pStr = p.toString().toUpperCase().trim();
-          return pStr != currentPath && !pStr.startsWith('$currentPath/');
+          String normP = _normalizePath(p.toString());
+          return normP != normCurrent && !normP.startsWith('$normCurrent/');
         }).toList();
 
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.client.clientId)
-            .set({'folderPaths': updatedPaths}, SetOptions(merge: true));
-
-        var docs = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.client.clientId)
-            .collection('documents')
-            .get();
-
-        WriteBatch batch = FirebaseFirestore.instance.batch();
-        for (var doc in docs.docs) {
-          String docPath = (doc.data()['folderPath'] ?? doc.data()['category'] ?? '').toString().toUpperCase().trim();
-          if (docPath == currentPath || docPath.startsWith('$currentPath/')) {
-            batch.delete(doc.reference);
-          }
+        if (!deletedFolders.any((d) => _normalizePath(d.toString()) == normCurrent)) {
+          deletedFolders.add(currentPath);
         }
-        await batch.commit();
+
+        for (String col in ['users', 'clients']) {
+          await FirebaseFirestore.instance
+              .collection(col)
+              .doc(widget.client.clientId)
+              .set({
+            'folderPaths': updatedPaths,
+            'deletedFolders': deletedFolders,
+          }, SetOptions(merge: true));
+        }
+
+        for (String col in ['users', 'clients']) {
+          var docs = await FirebaseFirestore.instance
+              .collection(col)
+              .doc(widget.client.clientId)
+              .collection('documents')
+              .get();
+
+          WriteBatch batch = FirebaseFirestore.instance.batch();
+          for (var doc in docs.docs) {
+            String docPath = (doc.data()['folderPath'] ?? doc.data()['category'] ?? '').toString().toUpperCase().trim();
+            if (docPath == currentPath || docPath.startsWith('$currentPath/')) {
+              batch.delete(doc.reference);
+            }
+          }
+          await batch.commit();
+        }
 
         if (!mounted) return;
         setState(() {});
@@ -891,24 +917,22 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     }
   }
 
+  String _normalizePath(String path) {
+    return path.split('/')
+        .map((part) => part.replaceFirst(RegExp(r'^\d+\.\s*'), '').trim().toUpperCase())
+        .join('/');
+  }
+
   FolderNode _buildFolderTree(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, [
     List<dynamic>? storedFolderPaths,
+    List<dynamic>? deletedFolders,
     String selectedMonthFilter = 'TODOS',
   ]) {
     FolderNode root = FolderNode(name: 'Root');
 
-    Set<String> allFolderPaths = {
-      'RUTA DE PERMISOLOGIA Y LEGALIZACIÒN DE TU EMPRESA',
-      'DOCUMENTACION LEGAL',
-      'ALCALDÍA',
-      'SENIAT',
-      'LIBROS CONTABLES',
-      'PARAFISCALES',
-      'PERMISOLOGIA DE FUNCIONAMIENTO',
-      'ENTES DE CONTROL',
-    };
-    if (storedFolderPaths != null) {
+    Set<String> allFolderPaths = {};
+    if (storedFolderPaths != null && storedFolderPaths.isNotEmpty) {
       for (var p in storedFolderPaths) {
         if (p != null && p.toString().trim().isNotEmpty) {
           allFolderPaths.add(p.toString().toUpperCase().trim());
@@ -916,8 +940,90 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       }
     }
 
-    // Inicializar todas las carpetas y subcarpetas conocidas para preservar la estructura completa en MAYÚSCULAS
+    if (allFolderPaths.isEmpty) {
+      allFolderPaths.addAll({
+        '1. RUTA DE PERMISOLOGIA Y LEGALIZACION',
+        '1. RUTA DE PERMISOLOGIA Y LEGALIZACION/REVISTA MAS EXACTO',
+        '2. DOCUMENTACION LEGAL',
+        '2. DOCUMENTACION LEGAL/ACTA CONSTITUTIVA Y ASAMBLEA',
+        '2. DOCUMENTACION LEGAL/CEDULAS Y RIF',
+        '2. DOCUMENTACION LEGAL/ISLR ANUAL',
+        '2. DOCUMENTACION LEGAL/PUBLICACION MERCANTIL',
+        '2. DOCUMENTACION LEGAL/RIF (REGISTRO DE IDENTIFICACION FISCAL) - EMPRESA',
+        '3. SENIAT',
+        '3. SENIAT/DPP (DECLARACION PROTECCION A LAS PENSIONES)',
+        '3. SENIAT/ISLRD SS Y OTRAS',
+        '3. SENIAT/IVA (IMPUESTO SOBRE LA RENTA)',
+        '4. ALCALDÍA',
+        '4. ALCALDÍA/ACTIVIDADES ECONOMICAS',
+        '4. ALCALDÍA/ASEO URBANO',
+        '4. ALCALDÍA/PUBLICIDAD',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/PERMISO DE LICORES Y CIGARRILLOS',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SACS (SANIDAD Y ALIMENTOS)',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SADTC - PERMISO BOMBEROS',
+        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SENCAMER (CALIDAD Y METROLOGIA)',
+        '6. ENTES DE CONTROL',
+        '6. ENTES DE CONTROL/CONAPDIS (CONSEJO NACIONAL PARA LAS PERSONAS CON DISCAPACIDAD)',
+        '6. ENTES DE CONTROL/FONACIT (CIENCIA Y TECNOLOGIA)',
+        '6. ENTES DE CONTROL/INPSASEL',
+        '6. ENTES DE CONTROL/RUPDAE',
+        '6. ENTES DE CONTROL/SNC (CONTRATACIONES PUBLICAS)',
+        '6. ENTES DE CONTROL/SUNAGRO (AGROLIMENTOS)',
+        '7. PARAFISCALES',
+        '7. PARAFISCALES/FAOV (FONDO DE AHORRO OBLIGATORIO PARA LA VIVIENDA)',
+        '7. PARAFISCALES/INCES (INSTITUTO NACIONAL DE CAPACITACION Y EDUCACION SOCIALISTA)',
+        '7. PARAFISCALES/IVSS (INSTITUTO VENEZOLANO DE LOS SEGUROS)',
+        '7. PARAFISCALES/MPPPTS (MINTRASS) - MINISTERIO DEL PODER POPULAR PARA EL PROCESO SOCIAL DEL TRABAJO',
+        '8. LIBROS CONTABLES',
+        '8. LIBROS CONTABLES/A - LIBRO CONTABLES',
+        '8. LIBROS CONTABLES/B - LIBRO VENTAS',
+        '8. LIBROS CONTABLES/C - LIBRO DIARIO',
+        '8. LIBROS CONTABLES/D - LIBRO MAYOR',
+        '8. LIBROS CONTABLES/E - LIBRO DE INVENTARIOS',
+        '8. LIBROS CONTABLES/F - CONTROL DE ENTRADAS Y SALIDA DE INVENTARIO',
+      });
+    }
+
+    Set<String> excluded = {};
+    if (deletedFolders != null) {
+      for (var d in deletedFolders) {
+        if (d != null) {
+          String dStr = d.toString().toUpperCase().trim();
+          if (!RegExp(r'^\d+\.').hasMatch(dStr)) {
+            excluded.add(_normalizePath(dStr));
+          }
+        }
+      }
+    }
+
+    Set<String> finalFolderPaths = {};
     for (String path in allFolderPaths) {
+      String normPath = _normalizePath(path);
+      bool isExcluded = excluded.any((ex) => normPath == ex || normPath.startsWith('$ex/'));
+      if (storedFolderPaths == null || storedFolderPaths.isEmpty) {
+        String upperPath = path.toUpperCase().trim();
+        if (upperPath.contains('SADTC') ||
+            upperPath.contains('SIGAT') ||
+            upperPath.contains('IVSS') ||
+            upperPath.contains('FAOV') ||
+            upperPath.contains('INCES') ||
+            upperPath.contains('IVA') ||
+            upperPath.contains('ISLR') ||
+            upperPath.contains('RETENCIONES') ||
+            upperPath.contains('SACS') ||
+            upperPath.contains('DPP') ||
+            upperPath == 'LEGALES') {
+          isExcluded = true;
+        }
+      }
+      if (!isExcluded) {
+        finalFolderPaths.add(path);
+      }
+    }
+
+    // Inicializar todas las carpetas y subcarpetas conocidas para preservar la estructura completa en MAYÚSCULAS
+    for (String path in finalFolderPaths) {
       List<String> parts = path.split('/').map((p) => p.trim().toUpperCase()).where((p) => p.isNotEmpty).toList();
       FolderNode currentNode = root;
       for (String part in parts) {
@@ -933,12 +1039,33 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       var data = doc.data();
       String period = (data['period'] ?? '').toString().trim();
 
-      // Si se selecciona un mes específico en el filtro, omitir documentos de otros meses
       if (selectedMonthFilter != 'TODOS' && period != selectedMonthFilter) {
         continue;
       }
 
       String rawPath = data['folderPath'] ?? data['category'] ?? 'GENERAL';
+      String normRawPath = _normalizePath(rawPath);
+      String upperRawPath = rawPath.toUpperCase().trim();
+      bool isPathExcluded = excluded.any((ex) => normRawPath == ex || normRawPath.startsWith('$ex/'));
+      if (storedFolderPaths == null || storedFolderPaths.isEmpty) {
+        if (upperRawPath.contains('SADTC') ||
+            upperRawPath.contains('SIGAT') ||
+            upperRawPath.contains('IVSS') ||
+            upperRawPath.contains('FAOV') ||
+            upperRawPath.contains('INCES') ||
+            upperRawPath.contains('IVA') ||
+            upperRawPath.contains('ISLR') ||
+            upperRawPath.contains('RETENCIONES') ||
+            upperRawPath.contains('SACS') ||
+            upperRawPath.contains('DPP') ||
+            upperRawPath == 'LEGALES') {
+          isPathExcluded = true;
+        }
+      }
+      if (isPathExcluded) {
+        continue;
+      }
+
       List<String> parts = rawPath.split('/').map((p) => p.trim().toUpperCase()).where((p) => p.isNotEmpty).toList();
       if (parts.isEmpty) parts = ['GENERAL'];
 
@@ -949,19 +1076,13 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         }
         currentNode = currentNode.subFolders[part]!;
       }
-      String title = data['title'] ?? data['nombre_archivo'] ?? data['nombre'] ?? 'Documento';
-      String fileBase64 = data['fileBase64'] ?? data['archivo_base64'] ?? data['base64'] ?? '';
-      String fileUrl = data['fileUrl'] ?? data['url'] ?? data['downloadUrl'] ?? '';
 
       currentNode.documents.add({
         'id': doc.id,
-        'title': title,
-        'period': period,
-        'fileBase64': fileBase64,
-        'fileUrl': fileUrl,
-        'folderPath': rawPath.toUpperCase(),
+        ...data,
       });
     }
+
     return root;
   }
 
@@ -1476,7 +1597,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                             List<String> availableFilterMonths = ['TODOS', ...sortedPeriods];
 
                             List<dynamic>? storedFolderPaths = data?['folderPaths'] as List<dynamic>?;
-                            FolderNode rootNode = _buildFolderTree(documents, storedFolderPaths, _selectedMonthFilter);
+                            List<dynamic>? deletedFolders = data?['deletedFolders'] as List<dynamic>?;
+                            FolderNode rootNode = _buildFolderTree(documents, storedFolderPaths, deletedFolders, _selectedMonthFilter);
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
