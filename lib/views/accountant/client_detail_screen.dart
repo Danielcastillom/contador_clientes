@@ -301,13 +301,12 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
 
       setState(() => _isUploading = true);
 
-      // Guardar la estructura de carpetas en el cliente de forma permanente
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.client.clientId)
-          .set({
-        'folderPaths': FieldValue.arrayUnion(['ALCALDÍA', 'DPP', 'PARAFISCALES', 'SENIAT', upperTargetPath]),
-      }, SetOptions(merge: true));
+      var data = await _getClientData();
+      List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+      if (!storedFolderPaths.contains(upperTargetPath)) {
+        storedFolderPaths.add(upperTargetPath);
+      }
+      await _saveClientFolders(storedFolderPaths);
 
       int currentYear = DateTime.now().year;
       int monthIndex = _months.indexOf(selectedMonth) + 1;
@@ -319,11 +318,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
           String fileName = file.name;
           String base64File = convert.base64Encode(fileBytes);
 
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(widget.client.clientId)
-              .collection('documents')
-              .add({
+          Map<String, dynamic> docData = {
             'title': fileName,
             'folderPath': upperTargetPath,
             'category': upperTargetPath,
@@ -333,11 +328,20 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
             'year': currentYear,
             'fileBase64': base64File,
             'createdAt': FieldValue.serverTimestamp(),
-          });
+          };
+
+          for (String col in ['users', 'clients']) {
+            await FirebaseFirestore.instance
+                .collection(col)
+                .doc(widget.client.clientId)
+                .collection('documents')
+                .add(docData);
+          }
         }
       }
 
       if (!mounted) return;
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('¡Documentos del mes de $selectedMonth agregados a "$upperTargetPath"!')),
       );
@@ -616,7 +620,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
 
         List<dynamic> updatedPaths = storedFolderPaths.where((p) {
           String normP = _normalizePath(p.toString());
-          return normP != normCurrent && !normP.startsWith('$normCurrent/');
+          return !_isSubpath(normP, normCurrent);
         }).toList();
 
         if (!deletedFolders.any((d) => _normalizePath(d.toString()) == normCurrent)) {
@@ -643,7 +647,8 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
           WriteBatch batch = FirebaseFirestore.instance.batch();
           for (var doc in docs.docs) {
             String docPath = (doc.data()['folderPath'] ?? doc.data()['category'] ?? '').toString().toUpperCase().trim();
-            if (docPath == currentPath || docPath.startsWith('$currentPath/')) {
+            String normDocPath = _normalizePath(docPath);
+            if (_isSubpath(normDocPath, normCurrent)) {
               batch.delete(doc.reference);
             }
           }
@@ -926,6 +931,11 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         .join('/');
   }
 
+  bool _isSubpath(String path, String parent) {
+    if (path == parent) return true;
+    return path.startsWith('$parent/');
+  }
+
   FolderNode _buildFolderTree(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, [
     List<dynamic>? storedFolderPaths,
@@ -1003,7 +1013,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     Set<String> finalFolderPaths = {};
     for (String path in allFolderPaths) {
       String normPath = _normalizePath(path);
-      bool isExcluded = excluded.any((ex) => normPath == ex || normPath.startsWith('$ex/'));
+      bool isExcluded = excluded.any((ex) => _isSubpath(normPath, ex));
       if (storedFolderPaths == null || storedFolderPaths.isEmpty) {
         String upperPath = path.toUpperCase().trim();
         if (upperPath.contains('SADTC') ||
@@ -1049,7 +1059,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       String rawPath = data['folderPath'] ?? data['category'] ?? 'GENERAL';
       String normRawPath = _normalizePath(rawPath);
       String upperRawPath = rawPath.toUpperCase().trim();
-      bool isPathExcluded = excluded.any((ex) => normRawPath == ex || normRawPath.startsWith('$ex/'));
+      bool isPathExcluded = excluded.any((ex) => _isSubpath(normRawPath, ex));
       if (storedFolderPaths == null || storedFolderPaths.isEmpty) {
         if (upperRawPath.contains('SADTC') ||
             upperRawPath.contains('SIGAT') ||
