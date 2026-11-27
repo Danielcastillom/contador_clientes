@@ -187,12 +187,15 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       setState(() => _isUploading = true);
 
       // Guardar la estructura de carpetas en el cliente de forma permanente
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.client.clientId)
-          .set({
-        'folderPaths': FieldValue.arrayUnion(['ALCALDÍA', 'DPP', 'PARAFISCALES', 'SENIAT', folderPath]),
-      }, SetOptions(merge: true));
+      var data = await _getClientData();
+      List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+      if (storedFolderPaths.isEmpty) {
+        storedFolderPaths.addAll(_getDefaultFolders());
+      }
+      if (!storedFolderPaths.contains(folderPath)) {
+        storedFolderPaths.add(folderPath);
+      }
+      await _saveClientFolders(storedFolderPaths);
 
       int currentYear = DateTime.now().year;
       int monthIndex = _months.indexOf(selectedMonth) + 1;
@@ -302,12 +305,15 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       setState(() => _isUploading = true);
 
       // Guardar la estructura de carpetas en el cliente de forma permanente
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.client.clientId)
-          .set({
-        'folderPaths': FieldValue.arrayUnion(['ALCALDÍA', 'DPP', 'PARAFISCALES', 'SENIAT', upperTargetPath]),
-      }, SetOptions(merge: true));
+      var data = await _getClientData();
+      List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+      if (storedFolderPaths.isEmpty) {
+        storedFolderPaths.addAll(_getDefaultFolders());
+      }
+      if (!storedFolderPaths.contains(upperTargetPath)) {
+        storedFolderPaths.add(upperTargetPath);
+      }
+      await _saveClientFolders(storedFolderPaths);
 
       int currentYear = DateTime.now().year;
       int monthIndex = _months.indexOf(selectedMonth) + 1;
@@ -413,6 +419,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       try {
         var data = await _getClientData();
         List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+        if (storedFolderPaths.isEmpty) {
+          storedFolderPaths.addAll(_getDefaultFolders());
+        }
         if (!storedFolderPaths.contains(newFolderPath)) {
           storedFolderPaths.add(newFolderPath);
         }
@@ -472,6 +481,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       try {
         var data = await _getClientData();
         List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+        if (storedFolderPaths.isEmpty) {
+          storedFolderPaths.addAll(_getDefaultFolders());
+        }
         if (!storedFolderPaths.contains(folderName)) {
           storedFolderPaths.add(folderName);
         }
@@ -532,6 +544,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       try {
         var data = await _getClientData();
         List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+        if (storedFolderPaths.isEmpty) {
+          storedFolderPaths.addAll(_getDefaultFolders());
+        }
 
         List<dynamic> updatedPaths = [];
         for (var p in storedFolderPaths) {
@@ -610,6 +625,9 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       try {
         var data = await _getClientData();
         List<dynamic> storedFolderPaths = List.from(data?['folderPaths'] ?? []);
+        if (storedFolderPaths.isEmpty) {
+          storedFolderPaths.addAll(_getDefaultFolders());
+        }
         List<dynamic> deletedFolders = List.from(data?['deletedFolders'] ?? []);
 
         String normCurrent = _normalizePath(currentPath);
@@ -926,6 +944,51 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
         .join('/');
   }
 
+  List<String> _getDefaultFolders() {
+    return [
+      '1. RUTA DE PERMISOLOGIA Y LEGALIZACION',
+      '1. RUTA DE PERMISOLOGIA Y LEGALIZACION/REVISTA MAS EXACTO',
+      '2. DOCUMENTACION LEGAL',
+      '2. DOCUMENTACION LEGAL/ACTA CONSTITUTIVA Y ASAMBLEA',
+      '2. DOCUMENTACION LEGAL/CEDULAS Y RIF',
+      '2. DOCUMENTACION LEGAL/ISLR ANUAL',
+      '2. DOCUMENTACION LEGAL/PUBLICACION MERCANTIL',
+      '2. DOCUMENTACION LEGAL/RIF (REGISTRO DE IDENTIFICACION FISCAL) - EMPRESA',
+      '3. SENIAT',
+      '3. SENIAT/DPP (DECLARACION PROTECCION A LAS PENSIONES)',
+      '3. SENIAT/ISLRD SS Y OTRAS',
+      '3. SENIAT/IVA (IMPUESTO SOBRE LA RENTA)',
+      '4. ALCALDÍA',
+      '4. ALCALDÍA/ACTIVIDADES ECONOMICAS',
+      '4. ALCALDÍA/ASEO URBANO',
+      '4. ALCALDÍA/PUBLICIDAD',
+      '5. PERMISOLOGIA DE FUNCIONAMIENTO',
+      '5. PERMISOLOGIA DE FUNCIONAMIENTO/PERMISO DE LICORES Y CIGARRILLOS',
+      '5. PERMISOLOGIA DE FUNCIONAMIENTO/SACS (SANIDAD Y ALIMENTOS)',
+      '5. PERMISOLOGIA DE FUNCIONAMIENTO/SADTC - PERMISO BOMBEROS',
+      '5. PERMISOLOGIA DE FUNCIONAMIENTO/SENCAMER (CALIDAD Y METROLOGIA)',
+      '6. ENTES DE CONTROL',
+      '6. ENTES DE CONTROL/CONAPDIS (CONSEJO NACIONAL PARA LAS PERSONAS CON DISCAPACIDAD)',
+      '6. ENTES DE CONTROL/FONACIT (CIENCIA Y TECNOLOGIA)',
+      '6. ENTES DE CONTROL/INPSASEL',
+      '6. ENTES DE CONTROL/RUPDAE',
+      '6. ENTES DE CONTROL/SNC (CONTRATACIONES PUBLICAS)',
+      '6. ENTES DE CONTROL/SUNAGRO (AGROLIMENTOS)',
+      '7. PARAFISCALES',
+      '7. PARAFISCALES/FAOV (FONDO DE AHORRO OBLIGATORIO PARA LA VIVIENDA)',
+      '7. PARAFISCALES/INCES (INSTITUTO NACIONAL DE CAPACITACION Y EDUCACION SOCIALISTA)',
+      '7. PARAFISCALES/IVSS (INSTITUTO VENEZOLANO DE LOS SEGUROS)',
+      '7. PARAFISCALES/MPPPTS (MINTRASS) - MINISTERIO DEL PODER POPULAR PARA EL PROCESO SOCIAL DEL TRABAJO',
+      '8. LIBROS CONTABLES',
+      '8. LIBROS CONTABLES/A - LIBRO CONTABLES',
+      '8. LIBROS CONTABLES/B - LIBRO VENTAS',
+      '8. LIBROS CONTABLES/C - LIBRO DIARIO',
+      '8. LIBROS CONTABLES/D - LIBRO MAYOR',
+      '8. LIBROS CONTABLES/E - LIBRO DE INVENTARIOS',
+      '8. LIBROS CONTABLES/F - CONTROL DE ENTRADAS Y SALIDA DE INVENTARIO',
+    ];
+  }
+
   FolderNode _buildFolderTree(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, [
     List<dynamic>? storedFolderPaths,
@@ -944,48 +1007,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     }
 
     if (allFolderPaths.isEmpty) {
-      allFolderPaths.addAll({
-        '1. RUTA DE PERMISOLOGIA Y LEGALIZACION',
-        '1. RUTA DE PERMISOLOGIA Y LEGALIZACION/REVISTA MAS EXACTO',
-        '2. DOCUMENTACION LEGAL',
-        '2. DOCUMENTACION LEGAL/ACTA CONSTITUTIVA Y ASAMBLEA',
-        '2. DOCUMENTACION LEGAL/CEDULAS Y RIF',
-        '2. DOCUMENTACION LEGAL/ISLR ANUAL',
-        '2. DOCUMENTACION LEGAL/PUBLICACION MERCANTIL',
-        '2. DOCUMENTACION LEGAL/RIF (REGISTRO DE IDENTIFICACION FISCAL) - EMPRESA',
-        '3. SENIAT',
-        '3. SENIAT/DPP (DECLARACION PROTECCION A LAS PENSIONES)',
-        '3. SENIAT/ISLRD SS Y OTRAS',
-        '3. SENIAT/IVA (IMPUESTO SOBRE LA RENTA)',
-        '4. ALCALDÍA',
-        '4. ALCALDÍA/ACTIVIDADES ECONOMICAS',
-        '4. ALCALDÍA/ASEO URBANO',
-        '4. ALCALDÍA/PUBLICIDAD',
-        '5. PERMISOLOGIA DE FUNCIONAMIENTO',
-        '5. PERMISOLOGIA DE FUNCIONAMIENTO/PERMISO DE LICORES Y CIGARRILLOS',
-        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SACS (SANIDAD Y ALIMENTOS)',
-        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SADTC - PERMISO BOMBEROS',
-        '5. PERMISOLOGIA DE FUNCIONAMIENTO/SENCAMER (CALIDAD Y METROLOGIA)',
-        '6. ENTES DE CONTROL',
-        '6. ENTES DE CONTROL/CONAPDIS (CONSEJO NACIONAL PARA LAS PERSONAS CON DISCAPACIDAD)',
-        '6. ENTES DE CONTROL/FONACIT (CIENCIA Y TECNOLOGIA)',
-        '6. ENTES DE CONTROL/INPSASEL',
-        '6. ENTES DE CONTROL/RUPDAE',
-        '6. ENTES DE CONTROL/SNC (CONTRATACIONES PUBLICAS)',
-        '6. ENTES DE CONTROL/SUNAGRO (AGROLIMENTOS)',
-        '7. PARAFISCALES',
-        '7. PARAFISCALES/FAOV (FONDO DE AHORRO OBLIGATORIO PARA LA VIVIENDA)',
-        '7. PARAFISCALES/INCES (INSTITUTO NACIONAL DE CAPACITACION Y EDUCACION SOCIALISTA)',
-        '7. PARAFISCALES/IVSS (INSTITUTO VENEZOLANO DE LOS SEGUROS)',
-        '7. PARAFISCALES/MPPPTS (MINTRASS) - MINISTERIO DEL PODER POPULAR PARA EL PROCESO SOCIAL DEL TRABAJO',
-        '8. LIBROS CONTABLES',
-        '8. LIBROS CONTABLES/A - LIBRO CONTABLES',
-        '8. LIBROS CONTABLES/B - LIBRO VENTAS',
-        '8. LIBROS CONTABLES/C - LIBRO DIARIO',
-        '8. LIBROS CONTABLES/D - LIBRO MAYOR',
-        '8. LIBROS CONTABLES/E - LIBRO DE INVENTARIOS',
-        '8. LIBROS CONTABLES/F - CONTROL DE ENTRADAS Y SALIDA DE INVENTARIO',
-      });
+      allFolderPaths.addAll(_getDefaultFolders());
     }
 
     Set<String> excluded = {};
