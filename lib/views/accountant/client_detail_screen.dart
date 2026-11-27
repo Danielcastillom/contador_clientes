@@ -1009,6 +1009,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     FolderNode root = FolderNode(name: 'Root');
 
     Set<String> allFolderPaths = {};
+    allFolderPaths.addAll(_getDefaultFolders());
     if (storedFolderPaths != null && storedFolderPaths.isNotEmpty) {
       for (var p in storedFolderPaths) {
         if (p != null && p.toString().trim().isNotEmpty) {
@@ -1017,9 +1018,6 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       }
     }
 
-    if (allFolderPaths.isEmpty) {
-      allFolderPaths.addAll(_getDefaultFolders());
-    }
     Set<String> excluded = {};
     if (deletedFolders != null) {
       for (var d in deletedFolders) {
@@ -1036,22 +1034,6 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
     for (String path in allFolderPaths) {
       String normPath = _normalizePath(path);
       bool isExcluded = excluded.any((ex) => _isSubpath(normPath, ex));
-      if (storedFolderPaths == null || storedFolderPaths.isEmpty) {
-        String upperPath = path.toUpperCase().trim();
-        if (upperPath.contains('SADTC') ||
-            upperPath.contains('SIGAT') ||
-            upperPath.contains('IVSS') ||
-            upperPath.contains('FAOV') ||
-            upperPath.contains('INCES') ||
-            upperPath.contains('IVA') ||
-            upperPath.contains('ISLR') ||
-            upperPath.contains('RETENCIONES') ||
-            upperPath.contains('SACS') ||
-            upperPath.contains('DPP') ||
-            upperPath == 'LEGALES') {
-          isExcluded = true;
-        }
-      }
       if (!isExcluded) {
         finalFolderPaths.add(path);
       }
